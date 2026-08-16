@@ -1,0 +1,4 @@
+# Local build outputs and runtime data.
+lansync
+data/
+*.zip
