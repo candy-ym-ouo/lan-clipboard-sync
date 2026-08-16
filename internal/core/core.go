@@ -103,7 +103,7 @@ func (d *Devices) List(now time.Time) []Device {
 	defer d.mu.Unlock()
 	out := make([]Device, 0, len(d.values))
 	for id, device := range d.values {
-		if now.Sub(device.LastSeen) > d.ttl {
+		if now.Sub(device.LastSeen) < d.ttl {
 			delete(d.values, id)
 			continue
 		}

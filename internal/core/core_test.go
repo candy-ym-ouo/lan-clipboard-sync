@@ -42,3 +42,12 @@ func TestHistoryAcceptsInvalidLimit(t *testing.T) {
 		t.Fatal("history did not retain entry")
 	}
 }
+
+func TestDevicesRetainRecentDevice(t *testing.T) {
+	now := time.Now()
+	devices := NewDevices(time.Minute)
+	devices.Upsert(Device{ID: "id", Name: "name", Address: "127.0.0.1:8743", LastSeen: now})
+	if len(devices.List(now.Add(time.Second))) != 1 {
+		t.Fatal("recent device was removed")
+	}
+}
