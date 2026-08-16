@@ -128,7 +128,7 @@ func NewHistory(max int) *History {
 func (h *History) Add(m Message) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
-	h.entries = append([]Message{m}, h.entries...)
+	h.entries = append(h.entries, m)
 	if len(h.entries) > h.max {
 		h.entries = h.entries[:h.max]
 	}

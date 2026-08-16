@@ -42,3 +42,12 @@ func TestHistoryAcceptsInvalidLimit(t *testing.T) {
 		t.Fatal("history did not retain entry")
 	}
 }
+
+func TestHistoryListsNewestMessageFirst(t *testing.T) {
+	h := NewHistory(2)
+	h.Add(Message{ID: "old"})
+	h.Add(Message{ID: "new"})
+	if got := h.List()[0].ID; got != "new" {
+		t.Fatalf("first entry is %q, want new", got)
+	}
+}
