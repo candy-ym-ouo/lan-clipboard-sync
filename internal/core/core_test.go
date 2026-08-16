@@ -43,11 +43,28 @@ func TestHistoryAcceptsInvalidLimit(t *testing.T) {
 	}
 }
 
-func TestHistoryListsNewestMessageFirst(t *testing.T) {
+func TestHistoryKeepsNewestEntriesFirst(t *testing.T) {
+	h := NewHistory(3)
+	for _, id := range []string{"one", "two", "three"} {
+		h.Add(Message{ID: id})
+	}
+
+	entries := h.List()
+	for i, want := range []string{"three", "two", "one"} {
+		if entries[i].ID != want {
+			t.Fatalf("entry %d = %q, want %q", i, entries[i].ID, want)
+		}
+	}
+}
+
+func TestHistoryDiscardsOldestEntryAtCapacity(t *testing.T) {
 	h := NewHistory(2)
-	h.Add(Message{ID: "old"})
-	h.Add(Message{ID: "new"})
-	if got := h.List()[0].ID; got != "new" {
-		t.Fatalf("first entry is %q, want new", got)
+	for _, id := range []string{"one", "two", "three"} {
+		h.Add(Message{ID: id})
+	}
+
+	entries := h.List()
+	if len(entries) != 2 || entries[0].ID != "three" || entries[1].ID != "two" {
+		t.Fatalf("entries = %#v, want newest two entries first", entries)
 	}
 }
