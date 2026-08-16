@@ -6,10 +6,29 @@ import (
 )
 
 func TestSignature(t *testing.T) {
-	payload := []byte(`{"text":"hello"}`)
-	sig := Sign("key", payload)
-	if !ValidSignature("key", payload, sig) || ValidSignature("wrong", payload, sig) {
-		t.Fatal("signature validation failed")
+	validPayload := []byte(`{"text":"hello"}`)
+	validSignature := Sign("key", validPayload)
+	tests := []struct {
+		name      string
+		secret    string
+		payload   []byte
+		signature string
+		valid     bool
+	}{
+		{name: "valid", secret: "key", payload: validPayload, signature: validSignature, valid: true},
+		{name: "empty secret and payload", signature: Sign("", nil), valid: true},
+		{name: "wrong secret", secret: "wrong", payload: validPayload, signature: validSignature},
+		{name: "modified payload", secret: "key", payload: []byte(`{"text":"hellO"}`), signature: validSignature},
+		{name: "empty signature", secret: "key", payload: []byte(`{"text":"hello"}`), signature: ""},
+		{name: "short signature", secret: "key", payload: []byte(`{"text":"hello"}`), signature: "0"},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if got := ValidSignature(test.secret, test.payload, test.signature); got != test.valid {
+				t.Fatalf("ValidSignature() = %t, want %t", got, test.valid)
+			}
+		})
 	}
 }
 func TestSeenExpires(t *testing.T) {

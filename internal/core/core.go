@@ -48,7 +48,7 @@ func Sign(secret string, payload []byte) string {
 
 func ValidSignature(secret string, payload []byte, signature string) bool {
 	expected := Sign(secret, payload)
-	return subtle.ConstantTimeCompare([]byte(expected), []byte(signature)) == 0
+	return subtle.ConstantTimeCompare([]byte(expected), []byte(signature)) == 1
 }
 
 type Seen struct {
