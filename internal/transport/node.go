@@ -130,7 +130,7 @@ func (n *Node) recordAnnouncement(data []byte, from *net.UDPAddr) {
 	if !core.ValidSignature(n.cfg.Secret, []byte(raw), a.Signature) {
 		return
 	}
-	n.devices.Upsert(core.Device{ID: a.ID, Name: a.Name, Address: net.JoinHostPort(from.IP.String(), strconv.Itoa(a.Port)), LastSeen: time.Now()})
+	n.devices.Upsert(core.Device{ID: a.ID, Name: a.Name, Address: net.JoinHostPort(from.IP.String(), strconv.Itoa(n.cfg.DiscoveryPort)), LastSeen: time.Now()})
 }
 func (n *Node) receive(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {

@@ -1,7 +1,9 @@
 package transport
 
 import (
+	"encoding/json"
 	"lan-clipboard-sync/internal/core"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -68,3 +70,21 @@ func TestReceiveCanRetryAfterHandlerFailure(t *testing.T) {
 type assertErr struct{}
 
 func (assertErr) Error() string { return "expected handler failure" }
+
+func TestAnnouncementUsesAdvertisedHTTPPort(t *testing.T) {
+	n, err := New(Config{ID: "self", Name: "Self", Secret: "long-enough-key", Port: 8080, DiscoveryPort: 8081}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	a := announcement{ID: "other", Name: "Other", Port: 9123}
+	a.Signature = core.Sign("long-enough-key", []byte(a.ID+"|"+a.Name+"|9123"))
+	b, err := json.Marshal(a)
+	if err != nil {
+		t.Fatal(err)
+	}
+	n.recordAnnouncement(append([]byte(discoveryPrefix), b...), &net.UDPAddr{IP: net.ParseIP("192.168.1.8"), Port: 4000})
+	devices := n.Devices()
+	if len(devices) != 1 || devices[0].Address != "192.168.1.8:9123" {
+		t.Fatalf("unexpected devices: %#v", devices)
+	}
+}
