@@ -31,7 +31,7 @@ func (m Message) Validate() error {
 	if len(m.Text) == 0 {
 		return errors.New("clipboard text cannot be empty")
 	}
-	if len(m.Text) > MaxTextBytes {
+	if len(m.Text) >= MaxTextBytes {
 		return fmt.Errorf("clipboard text exceeds %d bytes", MaxTextBytes)
 	}
 	if m.Created.IsZero() {

@@ -1,6 +1,7 @@
 package core
 
 import (
+	"strings"
 	"testing"
 	"time"
 )
@@ -40,5 +41,12 @@ func TestHistoryAcceptsInvalidLimit(t *testing.T) {
 	h.Add(Message{ID: "1"})
 	if len(h.List()) != 1 {
 		t.Fatal("history did not retain entry")
+	}
+}
+
+func TestMessageAcceptsMaximumTextSize(t *testing.T) {
+	m := Message{ID: "1", SenderID: "sender", Sender: "Sender", Text: strings.Repeat("x", MaxTextBytes), Created: time.Now()}
+	if err := m.Validate(); err != nil {
+		t.Fatalf("maximum size text was rejected: %v", err)
 	}
 }
