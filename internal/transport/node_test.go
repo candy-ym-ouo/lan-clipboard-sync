@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -67,24 +68,53 @@ func TestReceiveCanRetryAfterHandlerFailure(t *testing.T) {
 	}
 }
 
-type assertErr struct{}
-
-func (assertErr) Error() string { return "expected handler failure" }
-
-func TestAnnouncementUsesAdvertisedHTTPPort(t *testing.T) {
+func TestRecordAnnouncementUsesAnnouncedPort(t *testing.T) {
 	n, err := New(Config{ID: "self", Name: "Self", Secret: "long-enough-key", Port: 8080, DiscoveryPort: 8081}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	a := announcement{ID: "other", Name: "Other", Port: 9123}
-	a.Signature = core.Sign("long-enough-key", []byte(a.ID+"|"+a.Name+"|9123"))
-	b, err := json.Marshal(a)
+
+	for _, port := range []int{1, 43210, 65535} {
+		a := announcement{ID: "other-" + strconv.Itoa(port), Name: "Other", Port: port}
+		raw := a.ID + "|" + a.Name + "|" + strconv.Itoa(a.Port)
+		a.Signature = core.Sign("long-enough-key", []byte(raw))
+		payload, err := json.Marshal(a)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		n.recordAnnouncement(append([]byte(discoveryPrefix), payload...), &net.UDPAddr{IP: net.ParseIP("192.0.2.12"), Port: 8081})
+
+		var address string
+		for _, device := range n.Devices() {
+			if device.ID == a.ID {
+				address = device.Address
+				break
+			}
+		}
+		if got, want := address, net.JoinHostPort("192.0.2.12", strconv.Itoa(port)); got != want {
+			t.Errorf("announcement port %d produced address %q, want %q", port, got, want)
+		}
+	}
+}
+
+func TestRecordAnnouncementRejectsInvalidSignature(t *testing.T) {
+	n, err := New(Config{ID: "self", Name: "Self", Secret: "long-enough-key", Port: 8080, DiscoveryPort: 8081}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	n.recordAnnouncement(append([]byte(discoveryPrefix), b...), &net.UDPAddr{IP: net.ParseIP("192.168.1.8"), Port: 4000})
-	devices := n.Devices()
-	if len(devices) != 1 || devices[0].Address != "192.168.1.8:9123" {
-		t.Fatalf("unexpected devices: %#v", devices)
+	a := announcement{ID: "other", Name: "Other", Port: 43210, Signature: "invalid"}
+	payload, err := json.Marshal(a)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	n.recordAnnouncement(append([]byte(discoveryPrefix), payload...), &net.UDPAddr{IP: net.ParseIP("192.0.2.12"), Port: 8081})
+	if got := n.Devices(); len(got) != 0 {
+		t.Fatalf("recorded unauthenticated device: %#v", got)
 	}
 }
+
+type assertErr struct{}
+
+func (assertErr) Error() string { return "expected handler failure" }
