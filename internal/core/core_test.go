@@ -36,17 +36,26 @@ func TestMessageValidation(t *testing.T) {
 	}
 }
 
+func TestMessageValidationTextLimit(t *testing.T) {
+	m := Message{ID: "1", SenderID: "a", Sender: "A", Text: strings.Repeat("x", MaxTextBytes), Created: time.Now()}
+	b, err := Encode(m)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Decode(b); err != nil {
+		t.Fatalf("decode text at limit: %v", err)
+	}
+
+	m.Text += "x"
+	if err := m.Validate(); err == nil {
+		t.Fatal("text over limit was accepted")
+	}
+}
+
 func TestHistoryAcceptsInvalidLimit(t *testing.T) {
 	h := NewHistory(-1)
 	h.Add(Message{ID: "1"})
 	if len(h.List()) != 1 {
 		t.Fatal("history did not retain entry")
-	}
-}
-
-func TestMessageAcceptsMaximumTextSize(t *testing.T) {
-	m := Message{ID: "1", SenderID: "sender", Sender: "Sender", Text: strings.Repeat("x", MaxTextBytes), Created: time.Now()}
-	if err := m.Validate(); err != nil {
-		t.Fatalf("maximum size text was rejected: %v", err)
 	}
 }
